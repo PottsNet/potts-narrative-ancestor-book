@@ -1,0 +1,507 @@
+<?php
+
+use Fisharebest\Webtrees\Tree;
+
+/** @var string $title */
+/** @var Tree $tree */
+/** @var string $module_class */
+/** @var string $xref */
+/** @var string $person_query */
+/** @var int $generations */
+/** @var array<string,mixed> $options */
+/** @var string $error */
+/** @var array<string,mixed>|null $book */
+
+if (!function_exists('nab_checked')) {
+    function nab_checked(array $options, string $key): string
+    {
+        return !empty($options[$key]) ? ' checked' : '';
+    }
+}
+
+$base_url = route($module_class, ['tree' => $tree->name()]);
+$base_path = $base_url;
+$base_query = [];
+$base_query_text = parse_url($base_url, PHP_URL_QUERY);
+
+if (is_string($base_query_text) && $base_query_text !== '') {
+    parse_str($base_query_text, $base_query);
+    $base_path = strtok($base_url, '?') ?: $base_url;
+}
+
+$download_url = '';
+
+if (is_array($book)) {
+    $download_query = http_build_query(array_merge($base_query, (array) $book['query'], ['download' => 'html']));
+    $download_url = $base_path . '?' . $download_query;
+}
+?>
+
+<style>
+    .nab-controls {
+        margin: 1rem 0 2rem;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: .5rem;
+        background: #f8f9fa;
+    }
+
+    .nab-controls-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .nab-controls label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: .25rem;
+    }
+
+    .nab-controls input[type="text"],
+    .nab-controls input[type="number"],
+    .nab-controls select {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .nab-checks {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: .35rem 1rem;
+        margin-top: 1rem;
+    }
+
+    .nab-checks label {
+        font-weight: 400;
+    }
+
+    .nab-actions {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    .nab-selected-person {
+        display: block;
+        margin-top: .35rem;
+        color: #555;
+    }
+
+    .nab-book {
+        max-width: 980px;
+        margin: 0 auto;
+        font-size: 1.05rem;
+        line-height: 1.6;
+    }
+
+    .nab-cover {
+        text-align: center;
+        padding: 3rem 1rem 2rem;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 2rem;
+    }
+
+    .nab-cover h1 {
+        font-size: 2.4rem;
+        margin-bottom: .5rem;
+    }
+
+    .nab-meta,
+    .nab-line {
+        color: #666;
+        font-size: .95rem;
+    }
+
+    .nab-toc {
+        margin: 2rem 0;
+        padding: 1rem;
+        border: 1px solid #e5e5e5;
+        border-radius: .5rem;
+    }
+
+    .nab-generation {
+        margin: 3rem 0 1.5rem;
+        padding-bottom: .4rem;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .nab-book-section {
+        margin: 2rem 0;
+        padding: 1rem 0;
+        break-inside: avoid;
+    }
+
+    .nab-book-section h2 {
+        margin-bottom: 1rem;
+        padding-bottom: .35rem;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .nab-person {
+        margin: 0 0 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #eee;
+        break-inside: avoid;
+    }
+
+    .nab-person-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .nab-photo {
+        flex: 0 0 90px;
+    }
+
+    .nab-photo img,
+    .nab-photo .icon-silhouette {
+        width: 90px;
+        height: 90px;
+        object-fit: cover;
+        border-radius: .4rem;
+        border: 1px solid #ddd;
+    }
+
+    .nab-person h3 {
+        margin-top: 0;
+        margin-bottom: .25rem;
+    }
+
+    .nab-story-paragraph {
+        margin: .9rem 0;
+    }
+
+    .nab-story-media-block {
+        margin: 1rem 0;
+        padding: .75rem;
+        border: 1px solid #ddd;
+        border-radius: .5rem;
+        background: #fafafa;
+        break-inside: avoid;
+    }
+
+    .nab-photo-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .55rem;
+        align-items: flex-start;
+        margin-top: .55rem;
+    }
+
+    .nab-inline-photo {
+        margin: 0;
+        padding: .25rem;
+        border: 1px solid #ddd;
+        border-radius: .4rem;
+        background: #fff;
+        width: 115px;
+    }
+
+    .nab-inline-photo img,
+    .nab-inline-photo .icon-silhouette {
+        width: 105px;
+        height: 105px;
+        object-fit: cover;
+        border-radius: .25rem;
+        display: block;
+    }
+
+    .nab-inline-photo-caption {
+        display: block;
+        margin-top: .25rem;
+        color: #666;
+        font-size: .78rem;
+        line-height: 1.2;
+    }
+
+    .nab-media-text {
+        margin: 0;
+    }
+
+
+    .nab-note {
+        margin: .75rem 0;
+        padding: .75rem 1rem;
+        background: #f8f9fa;
+        border-left: 4px solid #ccc;
+    }
+
+    @media print {
+        .nab-controls,
+        .wt-page-title,
+        header,
+        nav,
+        footer,
+        .btn,
+        .noprint {
+            display: none !important;
+        }
+
+        .nab-book {
+            max-width: 100%;
+            font-size: 11.5pt;
+        }
+
+        .nab-cover {
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            page-break-after: always;
+            border-bottom: none;
+        }
+
+        .nab-generation {
+            page-break-before: always;
+        }
+
+        a[href]::after {
+            content: "";
+        }
+    }
+</style>
+
+<h2 class="wt-page-title"><?= e($title) ?></h2>
+
+<section class="nab-controls noprint">
+    <form method="get" action="<?= e($base_path) ?>" id="nab-form">
+        <?php foreach ($base_query as $name => $value): ?>
+            <input type="hidden" name="<?= e((string) $name) ?>" value="<?= e((string) $value) ?>">
+        <?php endforeach ?>
+
+        <div class="nab-controls-grid">
+            <div>
+                <label for="nab-person">Individual</label>
+                <input type="search" id="nab-person" name="person" value="<?= e($person_query) ?>" placeholder="Start typing a name…" list="nab-person-options" autocomplete="off" required>
+                <input type="hidden" id="nab-xref" name="xref" value="<?= e($xref) ?>">
+                <datalist id="nab-person-options"></datalist>
+                <small>Start typing a name, then choose the person from the suggestions.</small>
+                <small class="nab-selected-person" id="nab-selected-person"></small>
+            </div>
+
+            <div>
+                <label for="nab-generations">Generations</label>
+                <input type="number" id="nab-generations" name="generations" value="<?= e((string) $generations) ?>" min="1" max="8">
+                <small>Recommended: 4 to 6. Maximum: 8.</small>
+            </div>
+
+            <div>
+                <label for="nab-wording">Relationship wording</label>
+                <select id="nab-wording" name="wording">
+                    <option value="your"<?= ($options['wording'] ?? 'your') === 'your' ? ' selected' : '' ?>>Personal: your father, your great-grandmother</option>
+                    <option value="neutral"<?= ($options['wording'] ?? 'your') === 'neutral' ? ' selected' : '' ?>>Neutral: the selected person’s father</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="nab-story-detail">Story detail</label>
+                <select id="nab-story-detail" name="story_detail">
+                    <option value="summary"<?= ($options['story_detail'] ?? 'detailed') === 'summary' ? ' selected' : '' ?>>Core life: main events only</option>
+                    <option value="detailed"<?= ($options['story_detail'] ?? 'detailed') === 'detailed' ? ' selected' : '' ?>>Detailed: balanced family story</option>
+                    <option value="research"<?= ($options['story_detail'] ?? 'detailed') === 'research' ? ' selected' : '' ?>>Research: include more record detail</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="nab-book-sections">Introduction and conclusion</label>
+                <select id="nab-book-sections" name="book_sections">
+                    <option value="personalised"<?= ($options['book_sections'] ?? 'personalised') === 'personalised' ? ' selected' : '' ?>>Personalised: use facts from this book</option>
+                    <option value="generic"<?= ($options['book_sections'] ?? 'personalised') === 'generic' ? ' selected' : '' ?>>Generic: general family history wording</option>
+                    <option value="none"<?= ($options['book_sections'] ?? 'personalised') === 'none' ? ' selected' : '' ?>>None</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="nab-checks">
+            <label><input type="hidden" name="include_media" value="0"><input type="checkbox" name="include_media" value="1"<?= nab_checked($options, 'include_media') ?>> Include thumbnail photographs</label>
+            <label><input type="hidden" name="include_occupations" value="0"><input type="checkbox" name="include_occupations" value="1"<?= nab_checked($options, 'include_occupations') ?>> Include occupations</label>
+            <label><input type="hidden" name="include_residences" value="0"><input type="checkbox" name="include_residences" value="1"<?= nab_checked($options, 'include_residences') ?>> Include residences</label>
+            <label><input type="hidden" name="include_education" value="0"><input type="checkbox" name="include_education" value="1"<?= nab_checked($options, 'include_education') ?>> Include education</label>
+            <label><input type="hidden" name="include_migration" value="0"><input type="checkbox" name="include_migration" value="1"<?= nab_checked($options, 'include_migration') ?>> Include migration / naturalisation</label>
+            <label><input type="hidden" name="include_children" value="0"><input type="checkbox" name="include_children" value="1"<?= nab_checked($options, 'include_children') ?>> Include children in the chronological story</label>
+            <label><input type="hidden" name="include_notes" value="0"><input type="checkbox" name="include_notes" value="1"<?= nab_checked($options, 'include_notes') ?>> Include notes</label>
+        </div>
+
+        <div class="nab-actions">
+            <button type="submit" class="btn btn-primary">Generate book</button>
+            <?php if ($book !== null): ?>
+                <button type="button" class="btn btn-secondary" onclick="window.print()">Print / save as PDF</button>
+                <a class="btn btn-secondary" href="<?= e($download_url) ?>">Download HTML for Word</a>
+            <?php endif ?>
+        </div>
+    </form>
+</section>
+
+<script>
+(function () {
+    const searchBaseUrl = <?= json_encode($base_url, JSON_UNESCAPED_SLASHES) ?>;
+    const personInput = document.getElementById('nab-person');
+    const xrefInput = document.getElementById('nab-xref');
+    const optionsList = document.getElementById('nab-person-options');
+    const selectedText = document.getElementById('nab-selected-person');
+    let timer = null;
+    let suggestions = [];
+
+    function searchUrl(term) {
+        const url = new URL(searchBaseUrl, window.location.href);
+        url.searchParams.set('action', 'search');
+        url.searchParams.set('q', term);
+        return url.toString();
+    }
+
+    function setSelected(match) {
+        if (match) {
+            xrefInput.value = match.xref;
+            selectedText.textContent = 'Selected: ' + match.label;
+        } else {
+            xrefInput.value = '';
+            selectedText.textContent = '';
+        }
+    }
+
+    function refreshSelection() {
+        const value = personInput.value;
+        const exact = suggestions.find(function (item) {
+            return item.label === value || item.name === value || value.endsWith('[' + item.xref + ']');
+        });
+
+        setSelected(exact || null);
+    }
+
+    personInput.addEventListener('input', function () {
+        const term = personInput.value.trim();
+        setSelected(null);
+        window.clearTimeout(timer);
+
+        if (term.length < 2) {
+            suggestions = [];
+            optionsList.innerHTML = '';
+            return;
+        }
+
+        timer = window.setTimeout(function () {
+            fetch(searchUrl(term), {headers: {'Accept': 'application/json'}})
+                .then(function (response) { return response.ok ? response.json() : []; })
+                .then(function (items) {
+                    suggestions = Array.isArray(items) ? items : [];
+                    optionsList.innerHTML = '';
+
+                    suggestions.forEach(function (item) {
+                        const option = document.createElement('option');
+                        option.value = item.label;
+                        option.dataset.xref = item.xref;
+                        optionsList.appendChild(option);
+                    });
+
+                    refreshSelection();
+                })
+                .catch(function () {
+                    suggestions = [];
+                    optionsList.innerHTML = '';
+                });
+        }, 250);
+    });
+
+    personInput.addEventListener('change', refreshSelection);
+
+    document.getElementById('nab-form').addEventListener('submit', function () {
+        refreshSelection();
+    });
+}());
+</script>
+
+<?php if ($error !== ''): ?>
+    <div class="alert alert-danger"><?= e($error) ?></div>
+<?php endif ?>
+
+<?php if (is_array($book)): ?>
+    <article class="nab-book">
+        <section class="nab-cover">
+            <h1><?= e(strip_tags((string) $book['title'])) ?></h1>
+            <p class="nab-meta">Prepared from <?= e($tree->title()) ?> on <?= e((string) $book['created']) ?>.</p>
+            <p>This book follows <?= e(strip_tags((string) $book['root_name'])) ?> across <?= e((string) $book['generations']) ?> generation<?= (int) $book['generations'] === 1 ? '' : 's' ?> and includes <?= e((string) $book['people_count']) ?> recorded people.</p>
+        </section>
+
+        <section class="nab-toc">
+            <h2>Contents</h2>
+            <ol>
+                <?php if (!empty($book['introduction'])): ?>
+                    <li><a href="#introduction">Introduction</a></li>
+                <?php endif ?>
+                <?php foreach ((array) $book['by_generation'] as $generation => $profiles): ?>
+                    <?php $generation_label = (string) (($book['generation_labels'][$generation] ?? '') ?: ('Generation ' . (string) $generation)); ?>
+                    <li><a href="#generation-<?= e((string) $generation) ?>"><?= e($generation_label) ?></a> — <?= count((array) $profiles) ?> people</li>
+                <?php endforeach ?>
+                <?php if (!empty($book['conclusion'])): ?>
+                    <li><a href="#conclusion">Conclusion</a></li>
+                <?php endif ?>
+            </ol>
+        </section>
+
+        <?php if (!empty($book['introduction'])): ?>
+            <section class="nab-book-section" id="introduction">
+                <h2>Introduction</h2>
+                <?php foreach ((array) $book['introduction'] as $paragraph): ?>
+                    <p><?= e((string) $paragraph) ?></p>
+                <?php endforeach ?>
+            </section>
+        <?php endif ?>
+
+        <?php foreach ((array) $book['by_generation'] as $generation => $profiles): ?>
+            <?php $generation_label = (string) (($book['generation_labels'][$generation] ?? '') ?: ('Generation ' . (string) $generation)); ?>
+            <h2 class="nab-generation" id="generation-<?= e((string) $generation) ?>"><?= e($generation_label) ?></h2>
+
+            <?php foreach ((array) $profiles as $profile): ?>
+                <section class="nab-person">
+                    <div class="nab-person-header">
+                        <?php if ((string) $profile['photo_html'] !== ''): ?>
+                            <div class="nab-photo"><?= $profile['photo_html'] ?></div>
+                        <?php endif ?>
+
+                        <div>
+                            <h3><?= e(strip_tags((string) $profile['name'])) ?></h3>
+                            <p class="nab-meta">Relationship: <?= e((string) $profile['relationship']) ?></p>
+                            <?php if ((string) $profile['line'] !== ''): ?>
+                                <p class="nab-line">Line: <?= e((string) $profile['line']) ?></p>
+                            <?php endif ?>
+                        </div>
+                    </div>
+
+                    <?php foreach ((array) $profile['paragraphs'] as $paragraph): ?>
+                        <?php if (is_array($paragraph)): ?>
+                            <?php if ((string) ($paragraph['media_html'] ?? '') !== ''): ?>
+                                <div class="nab-story-media-block">
+                                    <p class="nab-media-text"><?= e((string) ($paragraph['text'] ?? '')) ?></p>
+                                    <div class="nab-photo-grid"><?= (string) ($paragraph['media_html'] ?? '') ?></div>
+                                </div>
+                            <?php else: ?>
+                                <p class="nab-story-paragraph"><?= e((string) ($paragraph['text'] ?? '')) ?></p>
+                            <?php endif ?>
+                        <?php else: ?>
+                            <p class="nab-story-paragraph"><?= e((string) $paragraph) ?></p>
+                        <?php endif ?>
+                    <?php endforeach ?>
+
+                    <?php foreach ((array) $profile['notes'] as $note): ?>
+                        <div class="nab-note"><strong>Research note:</strong> <?= e((string) $note) ?></div>
+                    <?php endforeach ?>
+                </section>
+            <?php endforeach ?>
+        <?php endforeach ?>
+
+        <?php if (!empty($book['conclusion'])): ?>
+            <section class="nab-book-section" id="conclusion">
+                <h2>Conclusion</h2>
+                <?php foreach ((array) $book['conclusion'] as $paragraph): ?>
+                    <p><?= e((string) $paragraph) ?></p>
+                <?php endforeach ?>
+            </section>
+        <?php endif ?>
+    </article>
+<?php elseif ($xref === ''): ?>
+    <p>Start typing an individual’s name and choose the number of generations to create a personalised chronological ancestor book.</p>
+<?php endif ?>

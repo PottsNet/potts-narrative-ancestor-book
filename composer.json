@@ -1,0 +1,15 @@
+{
+  "name": "pottsnet/potts-narrative-ancestor-book",
+  "description": "A webtrees custom module that creates a personalised narrative ancestor book.",
+  "type": "webtrees-module",
+  "license": "GPL-3.0-or-later",
+  "authors": [
+    {
+      "name": "Jason Potts",
+      "homepage": "https://tree.potts.net.au/"
+    }
+  ],
+  "require": {
+    "php": ">=8.3"
+  }
+}
