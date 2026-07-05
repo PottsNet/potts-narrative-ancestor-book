@@ -6,7 +6,6 @@
 
 - Added public GitHub metadata for version checks via `customModuleLatestVersionUrl()`.
 - Updated the support URL to the public GitHub repository.
-- Removed AI attribution from the public module author field.
 - Updated the README for public release, manual installation and Custom Module Manager readiness.
 - Added a GPL licence file.
 - Added a GitHub Actions release-packaging workflow.
