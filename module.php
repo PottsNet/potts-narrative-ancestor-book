@@ -28,7 +28,7 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
     use ModuleGlobalTrait;
 
     private const ROUTE_URL = '/tree/{tree}/potts-narrative-ancestor-book';
-    private const CUSTOM_VERSION = '0.8.1';
+    private const CUSTOM_VERSION = '0.8.2';
     private const GITHUB_REPO_URL = 'https://github.com/PottsNet/potts-narrative-ancestor-book';
     private const LATEST_VERSION_URL = 'https://raw.githubusercontent.com/PottsNet/potts-narrative-ancestor-book/main/latest-version.txt';
 
@@ -1245,12 +1245,69 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
         }));
 
         $items = $this->deduplicateTimelineItems($items);
+        $items = $this->combineReligionTimelineItems($items);
 
         if ($detail === 'summary') {
             $items = $this->reduceSummaryTimelineItems($items);
         }
 
         return $items;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $items
+     * @return array<int,array<string,mixed>>
+     */
+    private function combineReligionTimelineItems(array $items): array
+    {
+        $religion_indexes = [];
+        $religions = [];
+        $first_sort = null;
+
+        foreach ($items as $index => $item) {
+            $event = (array) ($item['event'] ?? []);
+
+            if ((string) ($item['type'] ?? '') !== 'life_event' || (string) ($event['tag'] ?? '') !== 'RELI') {
+                continue;
+            }
+
+            $religion_indexes[] = $index;
+            $first_sort = $first_sort === null ? (int) ($item['sort'] ?? 0) : min($first_sort, (int) ($item['sort'] ?? 0));
+            $religion = $this->displayEventLabel((string) ($event['value'] ?? ''));
+
+            if ($religion !== '' && $religion !== 'this event') {
+                $key = mb_strtolower($religion);
+                $religions[$key] = $religion;
+            }
+        }
+
+        if (count($religion_indexes) < 2) {
+            return $items;
+        }
+
+        $first_index = $religion_indexes[0];
+        $skip = array_fill_keys($religion_indexes, true);
+        $combined = [];
+
+        foreach ($items as $index => $item) {
+            if ($index === $first_index) {
+                $combined[] = [
+                    'type' => 'religion_group',
+                    'event' => [],
+                    'religions' => array_values($religions),
+                    'media_html' => '',
+                    'sort' => $first_sort ?? (int) ($item['sort'] ?? 0),
+                ];
+            }
+
+            if (isset($skip[$index])) {
+                continue;
+            }
+
+            $combined[] = $item;
+        }
+
+        return $combined;
     }
 
     /**
@@ -1480,6 +1537,16 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
                     $sentence = $this->sentenceWithLead($lead, $p['subject'] . ' served with ' . $this->displayEventLabel($value) . $place . $this->adultAgePhrase($event, $birth) . '.');
                 } else {
                     $sentence = $this->sentenceWithLead($lead, $p['subject'] . ' served in the military' . $place . $this->adultAgePhrase($event, $birth) . '.');
+                }
+                break;
+
+            case 'religion_group':
+                $religions = array_values(array_filter(array_map('strval', (array) ($item['religions'] ?? [])), static fn (string $religion): bool => trim($religion) !== ''));
+
+                if ($religions !== []) {
+                    $sentence = $p['possessive_cap'] . ' religious affiliations were recorded as ' . $this->plainJoin($religions) . '.';
+                } else {
+                    $sentence = $p['possessive_cap'] . ' religious life was recorded in more than one family-tree entry.';
                 }
                 break;
 
@@ -2089,8 +2156,8 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
         $sentence = preg_replace('/\bsyblings\b/i', 'siblings', $sentence) ?? $sentence;
         $sentence = preg_replace('/\bchidren\b/i', 'children', $sentence) ?? $sentence;
         $sentence = preg_replace('/\bhas past\b/i', 'had passed', $sentence) ?? $sentence;
-        $sentence = preg_replace('/worked as a home duties/i', 'was recorded as undertaking home duties', $sentence) ?? $sentence;
-        $sentence = preg_replace('/was recorded as undertaking at home/i', 'was recorded as undertaking home duties', $sentence) ?? $sentence;
+        $sentence = preg_replace('/\bworked as a home duties\b/i', 'was recorded as undertaking home duties', $sentence) ?? $sentence;
+        $sentence = preg_replace('/\bwas recorded as undertaking at home\b/i', 'was recorded as undertaking home duties', $sentence) ?? $sentence;
         $sentence = preg_replace('/served with the 44 Transport Squadron, Army Reserve/i', 'served with 44 Transport Squadron, Army Reserve', $sentence) ?? $sentence;
         $sentence = preg_replace('/\s+([,.;:])/', '$1', $sentence) ?? $sentence;
         $sentence = preg_replace('/,\s*,+/', ', ', $sentence) ?? $sentence;
@@ -2471,6 +2538,18 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
             return 'After ' . $this->formatGedcomDate($match[1]);
         }
 
+        if (preg_match('/^FROM\s+(.+)\s+TO\s+(.+)$/i', $date, $match)) {
+            return 'From ' . $this->formatGedcomDate($match[1]) . ' to ' . $this->formatGedcomDate($match[2]);
+        }
+
+        if (preg_match('/^FROM\s+(.+)$/i', $date, $match)) {
+            return 'From ' . $this->formatGedcomDate($match[1]);
+        }
+
+        if (preg_match('/^TO\s+(.+)$/i', $date, $match)) {
+            return 'Until ' . $this->formatGedcomDate($match[1]);
+        }
+
         if (preg_match('/^BET\s+(.+)\s+AND\s+(.+)$/i', $date, $match)) {
             return 'Between ' . $this->formatGedcomDate($match[1]) . ' and ' . $this->formatGedcomDate($match[2]);
         }
@@ -2545,7 +2624,15 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
         }
 
         $parts = array_values(array_filter(array_map(static function (string $part): string {
-            return trim($part);
+            $part = trim($part);
+
+            // U+FFFD means the original GEDCOM/place text contains broken or truncated Unicode.
+            // Drop the affected place segment rather than showing a replacement glyph in the book.
+            if ($part === '' || str_contains($part, "\u{FFFD}")) {
+                return '';
+            }
+
+            return $part;
         }, explode(',', $place)), static fn (string $part): bool => $part !== ''));
 
         $clean_parts = [];
@@ -3167,6 +3254,10 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
             'BEF' => 'before', 'BEFORE' => 'before', 'AFT' => 'after', 'AFTER' => 'after', 'FROM' => 'from', 'TO' => 'to',
             'EARLY' => 'early', 'LATE' => 'late',
         ];
+
+        if (preg_match('/^FROM\s+(.+)\s+TO\s+(.+)$/i', $date, $match)) {
+            return 'from ' . $this->formatGedcomDate($match[1]) . ' to ' . $this->formatGedcomDate($match[2]);
+        }
 
         foreach ($qualifiers as $gedcom => $word) {
             if (preg_match('/^' . $gedcom . '\s+(.+)$/i', $date, $match)) {

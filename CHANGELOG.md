@@ -1,11 +1,21 @@
 # Changelog
 
+## 0.8.2 - 2026-07-06
+
+### GitHub issue fixes
+
+- Fixed GEDCOM date-span wording so `FROM 1945 TO 1951` reads naturally as “From 1945 to 1951”.
+- Combined multiple `RELI` facts into one religion sentence rather than repeating the same sentence structure.
+- Hid broken Unicode replacement characters from place segments so corrupted foreign locations do not show the `�` glyph in the narrative.
+- Corrected two internal cleanup regular expressions that had copied invalid word-boundary characters.
+
 ## 0.8.1 - 2026-07-05
 
 ### Release readiness
 
 - Added public GitHub metadata for version checks via `customModuleLatestVersionUrl()`.
 - Updated the support URL to the public GitHub repository.
+- Removed AI attribution from the public module author field.
 - Updated the README for public release, manual installation and Custom Module Manager readiness.
 - Added a GPL licence file.
 - Added a GitHub Actions release-packaging workflow.
