@@ -4,13 +4,13 @@ A custom webtrees module that creates a personalised narrative ancestor book fro
 
 ## Version
 
-0.8.1
+0.8.3
 
 ## What it does
 
 - Adds a **Your Book** menu item with a custom icon.
 - Lets visitors search for an individual in the active tree and use that person as the root of the book.
-- Generates a readable ancestor book across 1 to 8 generations.
+- Generates a readable ancestor book across 1 to 10 generations.
 - Supports personal wording such as **you**, **your father** and **your great-grandmother**, or neutral wording such as **the selected person’s father**.
 - Builds the story in chronological order using births, christenings, education, residences, occupations, migration, military service, marriages, children, deaths, burials and selected life events.
 - Adds ages at major life events where useful without overloading the story.
@@ -30,7 +30,7 @@ A custom webtrees module that creates a personalised narrative ancestor book fro
 
 ### Manual installation
 
-1. Download the release ZIP named `potts_narrative_ancestor_book_v0.8.1.zip` from the GitHub release assets.
+1. Download the release ZIP named `potts_narrative_ancestor_book_v0.8.3.zip` from the GitHub release assets.
 2. Do **not** use GitHub’s automatic `Source code.zip` download for installation.
 3. Unzip the release package.
 4. Copy the included `potts_narrative_ancestor_book` folder into your webtrees `modules_v4` folder.
@@ -67,8 +67,8 @@ For a new release:
 2. Update `latest-version.txt`.
 3. Update `README.md` and `CHANGELOG.md`.
 4. Commit the changes.
-5. Create and push a tag such as `v0.8.1`.
-6. Attach the generated ZIP asset named `potts_narrative_ancestor_book_v0.8.1.zip` to the GitHub release.
+5. Create and push a tag such as `v0.8.3`.
+6. Attach the generated ZIP asset named `potts_narrative_ancestor_book_v0.8.3.zip` to the GitHub release.
 
 If GitHub Actions is enabled, the included workflow will build the release ZIP when a `v*` tag is pushed.
 

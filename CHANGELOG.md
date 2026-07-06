@@ -1,13 +1,18 @@
 # Changelog
 
-## 0.8.2 - 2026-07-06
+## 0.8.3 - 2026-07-06
 
-### GitHub issue fixes
+### Fixed
 
-- Fixed GEDCOM date-span wording so `FROM 1945 TO 1951` reads naturally as “From 1945 to 1951”.
-- Combined multiple `RELI` facts into one religion sentence rather than repeating the same sentence structure.
-- Hid broken Unicode replacement characters from place segments so corrupted foreign locations do not show the `�` glyph in the narrative.
-- Corrected two internal cleanup regular expressions that had copied invalid word-boundary characters.
+- Fixed GEDCOM `FROM ... TO ...` date spans so they read naturally in narrative leads.
+- Combined multiple religion (`RELI`) facts into a single sentence instead of repeating the same sentence structure.
+- Hid broken Unicode replacement characters from place-name segments so corrupted foreign locations do not show the `�` glyph in the book.
+- Corrected invalid regular-expression word-boundary characters in internal text cleanup rules.
+
+### Changed
+
+- Restored the intended maximum generation depth to 10 generations in the code and page controls.
+- Updated public version metadata and release documentation for v0.8.3.
 
 ## 0.8.1 - 2026-07-05
 

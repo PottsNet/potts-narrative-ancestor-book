@@ -28,7 +28,7 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
     use ModuleGlobalTrait;
 
     private const ROUTE_URL = '/tree/{tree}/potts-narrative-ancestor-book';
-    private const CUSTOM_VERSION = '0.8.2';
+    private const CUSTOM_VERSION = '0.8.3';
     private const GITHUB_REPO_URL = 'https://github.com/PottsNet/potts-narrative-ancestor-book';
     private const LATEST_VERSION_URL = 'https://raw.githubusercontent.com/PottsNet/potts-narrative-ancestor-book/main/latest-version.txt';
 
@@ -155,7 +155,7 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
             }
         }
 
-        $generations = min(8, max(1, (int) ($query['generations'] ?? 4)));
+        $generations = min(10, max(1, (int) ($query['generations'] ?? 4)));
 
         $options = [
             'include_media' => ($query['include_media'] ?? '1') === '1',
@@ -1254,6 +1254,7 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
         return $items;
     }
 
+
     /**
      * @param array<int,array<string,mixed>> $items
      * @return array<int,array<string,mixed>>
@@ -1539,6 +1540,7 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
                     $sentence = $this->sentenceWithLead($lead, $p['subject'] . ' served in the military' . $place . $this->adultAgePhrase($event, $birth) . '.');
                 }
                 break;
+
 
             case 'religion_group':
                 $religions = array_values(array_filter(array_map('strval', (array) ($item['religions'] ?? [])), static fn (string $religion): bool => trim($religion) !== ''));
@@ -2158,7 +2160,7 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
         $sentence = preg_replace('/\bhas past\b/i', 'had passed', $sentence) ?? $sentence;
         $sentence = preg_replace('/\bworked as a home duties\b/i', 'was recorded as undertaking home duties', $sentence) ?? $sentence;
         $sentence = preg_replace('/\bwas recorded as undertaking at home\b/i', 'was recorded as undertaking home duties', $sentence) ?? $sentence;
-        $sentence = preg_replace('/served with the 44 Transport Squadron, Army Reserve/i', 'served with 44 Transport Squadron, Army Reserve', $sentence) ?? $sentence;
+        $sentence = preg_replace('/\bserved with the 44 Transport Squadron, Army Reserve\b/i', 'served with 44 Transport Squadron, Army Reserve', $sentence) ?? $sentence;
         $sentence = preg_replace('/\s+([,.;:])/', '$1', $sentence) ?? $sentence;
         $sentence = preg_replace('/,\s*,+/', ', ', $sentence) ?? $sentence;
 
