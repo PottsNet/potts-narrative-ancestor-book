@@ -1,0 +1,55 @@
+name: Apply Narrative issue 5 fix
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'fix/issue-5-partnership-wording'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply partnership wording fix
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('module.php')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = {
+              "'type' => 'marriage_unknown_date',": "'type' => 'partnership_unknown_date',",
+              "case 'marriage_unknown_date':": "case 'partnership_unknown_date':",
+              "$sentence = $p['subject_cap'] . ' married ' . $spouse . '.';": "$sentence = $p['subject_cap'] . ' and ' . $spouse . ' were partners.';",
+          }
+
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one occurrence of {old!r}, found {count}')
+              text = text.replace(old, new, 1)
+
+          if 'marriage_unknown_date' in text:
+              raise SystemExit('Old synthetic marriage event name still present after patch')
+
+          path.write_text(text, encoding='utf-8', newline='\n')
+
+      - name: Commit the tested change
+        run: |
+          git config user.name "PottsNet"
+          git config user.email "42736500+PottsNet@users.noreply.github.com"
+          git add module.php
+          git diff --cached --check
+          git commit -m "Fix partnership wording when no marriage fact exists"
+          git push origin HEAD:${{ github.head_ref }}
