@@ -1192,7 +1192,7 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
             } elseif ((string) ($family['spouse_name'] ?? '') !== '') {
                 $family_sort_base = 80000000 + $order++;
                 $items[] = [
-                    'type' => 'marriage_unknown_date',
+                    'type' => 'partnership_unknown_date',
                     'event' => [],
                     'spouse_name' => (string) ($family['spouse_name'] ?? I18N::translate('an unknown spouse')),
                     'sort' => $family_sort_base,
@@ -1563,10 +1563,10 @@ return new class extends AbstractModule implements ModuleCustomInterface, Module
                 }
                 break;
 
-            case 'marriage_unknown_date':
+            case 'partnership_unknown_date':
                 $spouse = strip_tags((string) ($item['spouse_name'] ?? I18N::translate('an unknown spouse')));
                 if ($spouse !== '' && $spouse !== I18N::translate('an unknown spouse')) {
-                    $sentence = $p['subject_cap'] . ' married ' . $spouse . '.';
+                    $sentence = $p['subject_cap'] . ' and ' . $spouse . ' were partners.';
                 }
                 break;
 
